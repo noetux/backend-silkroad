@@ -1,20 +1,46 @@
-let products = [
-  { id: 0, title: 'product 00', price: 10},
-  { id: 1, title: 'product 01', price: 20},
-  { id: 2, title: 'product 02', price: 30},
-  { id: 3, title: 'product 03', price: 40},
-];
+const { db } = require('../services/firebase/firebase');
 
+/**
+ * /product/ 
+ */
 exports.getProducts = (req, res, next) => {
-  res.status(200).json({
-    products
+  db.ref('products').once('value', snapshot => {
+    let products = snapshot.val();
+    console.log(products);
+    products = Object.keys(products).map(key => ({ id: key, ...products[key]}));
+    res.status(200).json({ products });
   });
 };
 
+/**
+ * /product/:id
+ */
 exports.getProduct = (req, res, next) => {
-  const id = +req.params.id;
-  const product = products.filter(p => p.id === id)[0] || {};
-  res.status(200).json({
-    product
+  const id = req.params.id;
+  db.ref('products').child(id).once('value', snapshot => {
+    let product = snapshot.val();
+    if (product) {
+      res.status(200).json(snapshot.val());
+    } else {
+      res.status(404).json({
+        msg: 'Product not found',
+      });
+    }
   });
 }
+
+/**
+ * /product/
+ */
+exports.createProduct = (req, res, next) => {
+  const newProduct = {
+    title: req.body.title,
+    price: req.body.price
+  };
+  db.ref('products').push(newProduct).then((ref) => {
+    res.status(201).json({
+      message: 'Producct Added correctly',
+      product: { id: ref.key, ...newProduct }
+    });
+  });
+};
