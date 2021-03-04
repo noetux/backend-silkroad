@@ -1,4 +1,5 @@
 const { db } = require('../services/firebase/firebase');
+const serverConfig = require('../configs/server-config');
 
 /**
  * /product/ 
@@ -17,6 +18,11 @@ exports.getProducts = (req, res, next) => {
  */
 exports.getProduct = (req, res, next) => {
   const id = req.params.id;
+
+  if (!id) {
+    return res.status(402).json({ message: 'Error, provide an id' });
+  }
+
   db.ref('products').child(id).once('value', snapshot => {
     let product = snapshot.val();
     if (product) {
@@ -33,13 +39,25 @@ exports.getProduct = (req, res, next) => {
  * /product/
  */
 exports.createProduct = (req, res, next) => {
+  const title = req.body.title;
+  const price = parseFloat(req.body.price);
+  const image = req.file;
+
+  if (!image || !title || title === '' || (price || -1) <= 0) {
+    return res.status(402).json({ message: 'Error on product creation' });
+  }
+
+  const imageUrl = image.path.replace('public/', '');
   const newProduct = {
-    title: req.body.title,
-    price: req.body.price
-  };
-  db.ref('products').push(newProduct).then((ref) => {
+    title,
+    price,
+    imageUrl
+  }
+
+  db.ref('products').push(newProduct).then(ref => {
+    newProduct.imageUrl = `${serverConfig.scheme}://${serverConfig.server}:${serverConfig.port}/${newProduct.imageUrl}`
     res.status(201).json({
-      message: 'Producct Added correctly',
+      message: 'Product created',
       product: { id: ref.key, ...newProduct }
     });
   });

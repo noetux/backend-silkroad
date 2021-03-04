@@ -7,6 +7,9 @@
 # credentials
 /credentials
 
+# images
+/public/images/*
+
 # misc
 .DS_Store
 .env.local
